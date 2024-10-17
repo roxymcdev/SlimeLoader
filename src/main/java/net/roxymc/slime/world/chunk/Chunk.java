@@ -21,6 +21,6 @@ public interface Chunk extends CompoundBinaryTagHolder {
 
     @FunctionalInterface
     interface Deserializer {
-        Chunk deserialize(int x, int z, Section[] sections, Heightmaps heightMaps, BlockEntity[] blockEntities, Entity[] entities, CompoundBinaryTag tag);
+        Chunk deserialize(int x, int z, Section[] sections, Heightmaps heightmaps, BlockEntity[] blockEntities, Entity[] entities, CompoundBinaryTag tag);
     }
 }

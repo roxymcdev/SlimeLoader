@@ -53,7 +53,7 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
         out.writeInt(chunk.z());
 
         serializeSections(chunk.sections(), out);
-        serializeHeightMaps(chunk.heightmaps(), out);
+        serializeHeightmaps(chunk.heightmaps(), out);
         serializeBlockEntities(chunk.blockEntities(), out);
         serializeEntities(chunk.entities(), out);
         serializeCompound(chunk.tag(), out);
@@ -90,8 +90,8 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
         serializeCompound(biomes.tag(), out);
     }
 
-    protected void serializeHeightMaps(Heightmaps heightMaps, ByteArrayDataOutput out) throws IOException {
-        serializeCompound(heightMaps.tag(), out);
+    protected void serializeHeightmaps(Heightmaps heightmaps, ByteArrayDataOutput out) throws IOException {
+        serializeCompound(heightmaps.tag(), out);
     }
 
     protected void serializeBlockEntities(BlockEntity[] blockEntities, ByteArrayDataOutput out) throws IOException {
@@ -130,12 +130,12 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
         int z = in.readInt();
 
         Section[] sections = deserializeSections(in);
-        Heightmaps heightMaps = deserializeHeightMaps(in);
+        Heightmaps heightmaps = deserializeHeightmaps(in);
         BlockEntity[] blockEntities = deserializeBlockEntities(in);
         Entity[] entities = deserializeEntities(in);
         CompoundBinaryTag extraData = deserializeCompound(in);
 
-        return loader.deserializers().chunk().deserialize(x, z, sections, heightMaps, blockEntities, entities, extraData);
+        return loader.deserializers().chunk().deserialize(x, z, sections, heightmaps, blockEntities, entities, extraData);
     }
 
     protected Section[] deserializeSections(ByteArrayDataInput in) throws IOException {
@@ -178,7 +178,7 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
         return loader.deserializers().biomes().deserialize(deserializeCompound(in));
     }
 
-    protected Heightmaps deserializeHeightMaps(ByteArrayDataInput in) throws IOException {
+    protected Heightmaps deserializeHeightmaps(ByteArrayDataInput in) throws IOException {
         return loader.deserializers().heightmaps().deserialize(deserializeCompound(in));
     }
 

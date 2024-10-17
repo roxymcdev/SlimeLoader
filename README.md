@@ -10,7 +10,7 @@ This loader is based on the Slime format specification from [InfernalSuite/Advan
 |---------------|---------------------------|
 | 12            | 1.0                       |
 
-For older versions see [Legacy Slime version](#legacy-slime-versions) section.
+For older versions see [Legacy Slime versions](#legacy-slime-versions) section.
 
 ## Legacy Slime versions
 

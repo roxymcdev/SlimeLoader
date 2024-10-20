@@ -86,8 +86,8 @@ public abstract class SlimeSerializer {
 
     protected <T extends CompoundBinaryTagHolder> void serializeCompoundList(T[] array, ByteArrayDataOutput out, String key) throws IOException {
         ListBinaryTag.Builder<CompoundBinaryTag> builder = ListBinaryTag.builder(BinaryTagTypes.COMPOUND);
-        for (T blockEntity : array) {
-            builder.add(blockEntity.tag());
+        for (T element : array) {
+            builder.add(element.tag());
         }
 
         CompoundBinaryTag tag = CompoundBinaryTag.builder()

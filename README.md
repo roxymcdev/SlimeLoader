@@ -47,7 +47,7 @@ and
 
 ```kts
 dependencies {
-    implementation("net.roxymc:slimeloader:VERSION")
+    implementation("net.roxymc.slimeloader:slime-loader:VERSION")
 }
 ```
 

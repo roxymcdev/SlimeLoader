@@ -18,6 +18,7 @@ import net.roxymc.slime.world.chunk.Section;
 import net.roxymc.slime.world.entity.Entity;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;

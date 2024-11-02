@@ -11,17 +11,13 @@ import net.roxymc.slime.test.world.block.state.TestBlockStates;
 import net.roxymc.slime.test.world.chunk.TestChunk;
 import net.roxymc.slime.test.world.chunk.TestSection;
 import net.roxymc.slime.test.world.entity.TestEntity;
-import net.roxymc.slime.world.World;
 import net.roxymc.slime.world.block.entity.BlockEntity;
 import net.roxymc.slime.world.chunk.Chunk;
 import net.roxymc.slime.world.chunk.Section;
 import net.roxymc.slime.world.entity.Entity;
 import org.junit.jupiter.api.Test;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
 
 public class SlimeLoaderTest {
     private static final SlimeLoader LOADER = SlimeLoader.builder()

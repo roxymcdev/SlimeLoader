@@ -13,6 +13,13 @@ subprojects {
         mavenCentral()
     }
 
+    dependencies {
+        testCompileOnly("org.projectlombok:lombok:1.18.34")
+        testAnnotationProcessor("org.projectlombok:lombok:1.18.34")
+        testImplementation(platform("org.junit:junit-bom:5.10.0"))
+        testImplementation("org.junit.jupiter:junit-jupiter")
+    }
+
     java {
         toolchain.languageVersion = JavaLanguageVersion.of(17)
 
@@ -24,6 +31,10 @@ subprojects {
             options.encoding = Charsets.UTF_8.name()
             options.release = 17
             dependsOn(clean)
+        }
+
+        withType<Test> {
+            useJUnitPlatform()
         }
     }
 

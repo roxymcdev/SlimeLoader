@@ -126,6 +126,10 @@ public abstract class SlimeSerializer {
     }
 
     protected CompoundBinaryTag deserializeCompound(int length, ByteArrayDataInput in) throws IOException {
+        if (length == 0) {
+            return CompoundBinaryTag.empty();
+        }
+
         byte[] bytes = new byte[length];
         in.readFully(bytes);
 

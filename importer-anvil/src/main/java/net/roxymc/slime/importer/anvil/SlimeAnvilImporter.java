@@ -118,10 +118,10 @@ public class SlimeAnvilImporter implements SlimeImporter {
 
         CompoundBinaryTag tag;
         try (FileInputStream is = new FileInputStream(levelDat)) {
-            tag = BinaryTagIO.reader().read(is, BinaryTagIO.Compression.GZIP);
+            tag = BinaryTagIO.reader().read(is, BinaryTagIO.Compression.GZIP).getCompound(DATA_TAG);
         }
 
-        int dataVersion = tag.getCompound(DATA_TAG).getInt(DATA_VERSION_TAG);
+        int dataVersion = tag.getInt(DATA_VERSION_TAG);
 
         CompoundBinaryTag customDataTag = readCustomData(tag, preservedWorldTags);
 

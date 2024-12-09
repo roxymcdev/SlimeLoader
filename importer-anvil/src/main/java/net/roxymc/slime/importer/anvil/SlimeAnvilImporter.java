@@ -236,7 +236,7 @@ public class SlimeAnvilImporter implements SlimeImporter {
         }
     }
 
-    private <T> T[] readRegionFiles(File regionDir, IntFunction<T[]> generator, Function<CompoundBinaryTag, T> function) throws IOException {
+    private <T> T[] readRegionFiles(File regionDir, IntFunction<T[]> generator, Function<CompoundBinaryTag, @Nullable T> function) throws IOException {
         File[] files = regionDir.listFiles((dir, name) -> name.endsWith(MCA));
         if (files == null || files.length == 0) {
             return generator.apply(0);
@@ -252,7 +252,7 @@ public class SlimeAnvilImporter implements SlimeImporter {
         );
     }
 
-    private <T> T[] readRegionFile(File regionFile, IntFunction<T[]> generator, Function<CompoundBinaryTag, T> function) throws IOException {
+    private <T> T[] readRegionFile(File regionFile, IntFunction<T[]> generator, Function<CompoundBinaryTag, @Nullable T> function) throws IOException {
         byte[] bytes;
         try (FileInputStream is = new FileInputStream(regionFile)) {
             bytes = is.readAllBytes();
@@ -287,7 +287,6 @@ public class SlimeAnvilImporter implements SlimeImporter {
 
             CompoundBinaryTag tag = BinaryTagIO.reader().read(decompressorStream);
             T element = function.apply(tag);
-            //noinspection ConstantValue
             if (element != null) {
                 data.add(element);
             }

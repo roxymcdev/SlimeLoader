@@ -1,0 +1,18 @@
+[versions]
+adventure = "4.17.0"
+gson = "2.11.0"
+guava = "33.3.1-jre"
+jspecify = "1.0.0"
+junit5 = "5.10.0"
+lombok = "1.18.34"
+zstd = "1.5.6-6"
+
+[libraries]
+adventure-nbt = { module = "net.kyori:adventure-nbt", version.ref = "adventure" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+junit5-bom = { module = "org.junit:junit-bom", version.ref = "junit5" }
+junit5-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+zstd-jni = { module = "com.github.luben:zstd-jni", version.ref = "zstd" }

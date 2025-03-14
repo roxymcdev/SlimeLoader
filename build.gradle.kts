@@ -7,11 +7,13 @@ subprojects {
         mavenCentral()
     }
 
-    dependencies {
-        "testCompileOnly"("org.projectlombok:lombok:1.18.34")
-        "testAnnotationProcessor"("org.projectlombok:lombok:1.18.34")
-        "testImplementation"(platform("org.junit:junit-bom:5.10.0"))
-        "testImplementation"("org.junit.jupiter:junit-jupiter")
+    afterEvaluate {
+        dependencies {
+            "testCompileOnly"(libs.lombok)
+            "testAnnotationProcessor"(libs.lombok)
+            "testImplementation"(platform(libs.junit5.bom))
+            "testImplementation"(libs.junit5.jupiter)
+        }
     }
 
     extensions.configure<JavaPluginExtension> {

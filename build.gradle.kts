@@ -1,9 +1,3 @@
-plugins {
-    id("java")
-    id("java-library")
-    id("maven-publish")
-}
-
 subprojects {
     plugins.apply("java")
     plugins.apply("java-library")
@@ -14,13 +8,13 @@ subprojects {
     }
 
     dependencies {
-        testCompileOnly("org.projectlombok:lombok:1.18.34")
-        testAnnotationProcessor("org.projectlombok:lombok:1.18.34")
-        testImplementation(platform("org.junit:junit-bom:5.10.0"))
-        testImplementation("org.junit.jupiter:junit-jupiter")
+        "testCompileOnly"("org.projectlombok:lombok:1.18.34")
+        "testAnnotationProcessor"("org.projectlombok:lombok:1.18.34")
+        "testImplementation"(platform("org.junit:junit-bom:5.10.0"))
+        "testImplementation"("org.junit.jupiter:junit-jupiter")
     }
 
-    java {
+    extensions.configure<JavaPluginExtension> {
         toolchain.languageVersion = JavaLanguageVersion.of(17)
 
         withSourcesJar()
@@ -30,7 +24,7 @@ subprojects {
         withType<JavaCompile> {
             options.encoding = Charsets.UTF_8.name()
             options.release = 17
-            dependsOn(clean)
+            dependsOn("clean")
         }
 
         withType<Test> {
@@ -38,7 +32,7 @@ subprojects {
         }
     }
 
-    publishing {
+    extensions.configure<PublishingExtension> {
         repositories {
             val repoType = if (version.toString().endsWith("-SNAPSHOT")) "snapshots" else "releases"
             maven("https://repo.roxymc.net/${repoType}") {

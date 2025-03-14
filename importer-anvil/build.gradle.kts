@@ -1,5 +1,3 @@
 dependencies {
-    api(project(":importer")) {
-        isTransitive = true
-    }
+    api(project(":slime-loader"))
 }

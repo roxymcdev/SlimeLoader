@@ -74,11 +74,13 @@ public class SlimeAnvilImporter implements SlimeImporter {
     private final SlimeLoader slimeLoader;
     private final Set<String> preservedWorldTags;
     private final Set<String> preservedChunkTags;
+    private final boolean optimizeChunks;
 
     private SlimeAnvilImporter(Builder builder) {
         this.slimeLoader = builder.slimeLoader;
         this.preservedWorldTags = builder.preservedWorldTags;
         this.preservedChunkTags = builder.preservedChunkTags;
+        this.optimizeChunks = builder.optimizeChunks;
     }
 
     public static Builder builder(SlimeLoader slimeLoader) {
@@ -191,10 +193,6 @@ public class SlimeAnvilImporter implements SlimeImporter {
                 })
                 .toArray(Section[]::new);
 
-        Heightmaps heightmaps = slimeLoader.deserializers().heightmaps().deserialize(
-                tag.getCompound(HEIGHTMAPS_TAG)
-        );
-
         BlockEntity[] blockEntities = tag.getList(BLOCK_ENTITIES_TAG, BinaryTagTypes.COMPOUND).stream()
                 .map(CompoundBinaryTag.class::cast)
                 .map(slimeLoader.deserializers().blockEntity()::deserialize)
@@ -202,6 +200,14 @@ public class SlimeAnvilImporter implements SlimeImporter {
 
         ChunkPos chunkPos = new ChunkPos(x, z);
         Entity[] entities = entityChunks.containsKey(chunkPos) ? entityChunks.get(chunkPos).entities() : EMPTY_ENTITIES;
+
+        if (optimizeChunks && ChunkUtils.isEmpty(sections, blockEntities, entities)) {
+            return null;
+        }
+
+        Heightmaps heightmaps = slimeLoader.deserializers().heightmaps().deserialize(
+                tag.getCompound(HEIGHTMAPS_TAG)
+        );
 
         CompoundBinaryTag customDataTag = readCustomData(tag, preservedChunkTags);
 
@@ -302,6 +308,7 @@ public class SlimeAnvilImporter implements SlimeImporter {
         private final SlimeLoader slimeLoader;
         private Set<String> preservedWorldTags = Collections.emptySet();
         private Set<String> preservedChunkTags = Collections.emptySet();
+        private boolean optimizeChunks;
 
         private Builder(SlimeLoader slimeLoader) {
             this.slimeLoader = nonNull(slimeLoader, "slimeLoader");
@@ -314,6 +321,11 @@ public class SlimeAnvilImporter implements SlimeImporter {
 
         public Builder preserveChunkTags(String... tags) {
             preservedChunkTags = Set.of(tags);
+            return this;
+        }
+
+        public Builder optimizeChunks(boolean optimizeChunks) {
+            this.optimizeChunks = optimizeChunks;
             return this;
         }
 

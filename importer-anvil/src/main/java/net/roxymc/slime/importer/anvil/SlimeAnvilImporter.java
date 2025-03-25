@@ -33,6 +33,7 @@ import static net.roxymc.slime.util.ObjectUtils.nonNull;
 
 public class SlimeAnvilImporter implements SlimeImporter {
     private static final Entity[] EMPTY_ENTITIES = new Entity[0];
+    private static final int SECTION_COUNT = 1024;
     private static final int SECTION_SIZE = 4096;
     private static final String LEVEL_DAT = "level.dat";
     private static final String REGION_DIR = "region";
@@ -84,12 +85,10 @@ public class SlimeAnvilImporter implements SlimeImporter {
         return new Builder(slimeLoader);
     }
 
-    @Override
     public Set<String> preservedWorldTags() {
         return preservedWorldTags;
     }
 
-    @Override
     public Set<String> preservedChunkTags() {
         return preservedChunkTags;
     }
@@ -217,23 +216,23 @@ public class SlimeAnvilImporter implements SlimeImporter {
         );
     }
 
-    private CompoundBinaryTag readCustomData(CompoundBinaryTag tag, Set<String> tags) {
+    private CompoundBinaryTag readCustomData(CompoundBinaryTag compoundTag, Set<String> tags) {
         if (tags.isEmpty()) {
             return CompoundBinaryTag.empty();
-        } else {
-            CompoundBinaryTag.Builder builder = CompoundBinaryTag.builder();
-
-            tags.forEach(tagName -> {
-                BinaryTag binaryTag = tag.get(tagName);
-                if (binaryTag == null) {
-                    return;
-                }
-
-                builder.put(tagName, binaryTag);
-            });
-
-            return builder.build();
         }
+
+        CompoundBinaryTag.Builder builder = CompoundBinaryTag.builder();
+
+        tags.forEach(key -> {
+            BinaryTag tag = compoundTag.get(key);
+            if (tag == null) {
+                return;
+            }
+
+            builder.put(key, tag);
+        });
+
+        return builder.build();
     }
 
     private <T> T[] readRegionFiles(File regionDir, IntFunction<T[]> generator, Function<CompoundBinaryTag, @Nullable T> function) throws IOException {
@@ -260,8 +259,8 @@ public class SlimeAnvilImporter implements SlimeImporter {
 
         ByteArrayDataInput in = ByteStreams.newDataInput(bytes);
 
-        List<T> data = new ArrayList<>(1024);
-        for (int i = 0; i < 1024; i++) {
+        List<T> data = new ArrayList<>(SECTION_COUNT);
+        for (int i = 0; i < SECTION_COUNT; i++) {
             int entry;
             try {
                 entry = in.readInt();
@@ -270,22 +269,9 @@ public class SlimeAnvilImporter implements SlimeImporter {
             }
             if (entry == 0) continue;
 
-            int offset = (entry >>> 8) * SECTION_SIZE;
-            int size = (entry & 0xF) * SECTION_SIZE;
+            InputStream sectionStream = sectionStream(entry, bytes);
 
-            ByteArrayDataInput headerIn = ByteStreams.newDataInput(new ByteArrayInputStream(bytes, offset, size));
-            int chunkSize = headerIn.readInt() - 1;
-            int compressionScheme = headerIn.readByte();
-
-            InputStream chunkStream = new ByteArrayInputStream(bytes, offset + 5, chunkSize);
-            InputStream decompressorStream = switch (compressionScheme) {
-                case 1 -> new GZIPInputStream(chunkStream);
-                case 2 -> new InflaterInputStream(chunkStream);
-                case 3 -> chunkStream;
-                default -> throw new IllegalStateException("Unexpected value: " + compressionScheme);
-            };
-
-            CompoundBinaryTag tag = BinaryTagIO.reader().read(decompressorStream);
+            CompoundBinaryTag tag = BinaryTagIO.reader().read(sectionStream);
             T element = function.apply(tag);
             if (element != null) {
                 data.add(element);
@@ -293,6 +279,23 @@ public class SlimeAnvilImporter implements SlimeImporter {
         }
 
         return data.toArray(generator);
+    }
+
+    private InputStream sectionStream(int entry, byte[] bytes) throws IOException {
+        int offset = (entry >>> 8) * SECTION_SIZE;
+        int size = (entry & 0xF) * SECTION_SIZE;
+
+        ByteArrayDataInput in = ByteStreams.newDataInput(new ByteArrayInputStream(bytes, offset, size));
+        int sectionSize = in.readInt() - 1;
+        int compressionScheme = in.readByte();
+
+        InputStream sectionStream = new ByteArrayInputStream(bytes, offset + 5, sectionSize);
+        return switch (compressionScheme) {
+            case 1 -> new GZIPInputStream(sectionStream);
+            case 2 -> new InflaterInputStream(sectionStream);
+            case 3 -> sectionStream;
+            default -> throw new IllegalStateException("Unexpected value: " + compressionScheme);
+        };
     }
 
     public static class Builder {

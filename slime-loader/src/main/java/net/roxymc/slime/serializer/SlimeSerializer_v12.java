@@ -36,16 +36,12 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
     public void serialize(World world, ByteArrayDataOutput out) throws IOException {
         super.serialize(world, out);
 
-        serializeCompressed(chunksOut -> serializeChunks(world.chunks(), chunksOut), out);
-        serializeCompressed(dataOut -> serializeCompound(world.tag(), dataOut, false), out);
+        writeCompressed(world.chunks(), this::serializeChunks, out);
+        writeCompressed(world.tag(), this::writeRawCompound, out);
     }
 
     protected void serializeChunks(Chunk[] chunks, ByteArrayDataOutput out) throws IOException {
-        out.writeInt(chunks.length);
-
-        for (Chunk chunk : chunks) {
-            serializeChunk(chunk, out);
-        }
+        writeArray(chunks, out, this::serializeChunk);
     }
 
     protected void serializeChunk(Chunk chunk, ByteArrayDataOutput out) throws IOException {
@@ -56,15 +52,11 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
         serializeHeightmaps(chunk.heightmaps(), out);
         serializeBlockEntities(chunk.blockEntities(), out);
         serializeEntities(chunk.entities(), out);
-        serializeCompound(chunk.tag(), out);
+        writeCompound(chunk.tag(), out);
     }
 
     protected void serializeSections(Section[] sections, ByteArrayDataOutput out) throws IOException {
-        out.writeInt(sections.length);
-
-        for (Section section : sections) {
-            serializeSection(section, out);
-        }
+        writeArray(sections, out, this::serializeSection);
     }
 
     protected void serializeSection(Section section, ByteArrayDataOutput out) throws IOException {
@@ -83,23 +75,23 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
     }
 
     protected void serializeBlockStates(BlockStates blockStates, ByteArrayDataOutput out) throws IOException {
-        serializeCompound(blockStates.tag(), out);
+        writeCompound(blockStates.tag(), out);
     }
 
     protected void serializeBiomes(Biomes biomes, ByteArrayDataOutput out) throws IOException {
-        serializeCompound(biomes.tag(), out);
+        writeCompound(biomes.tag(), out);
     }
 
     protected void serializeHeightmaps(Heightmaps heightmaps, ByteArrayDataOutput out) throws IOException {
-        serializeCompound(heightmaps.tag(), out);
+        writeCompound(heightmaps.tag(), out);
     }
 
     protected void serializeBlockEntities(BlockEntity[] blockEntities, ByteArrayDataOutput out) throws IOException {
-        serializeCompoundList(blockEntities, out, TILE_ENTITIES);
+        writeCompoundArray(blockEntities, out, TILE_ENTITIES);
     }
 
     protected void serializeEntities(Entity[] entities, ByteArrayDataOutput out) throws IOException {
-        serializeCompoundList(entities, out, ENTITIES);
+        writeCompoundArray(entities, out, ENTITIES);
     }
     //</editor-fold>
 
@@ -108,21 +100,14 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
     public World deserialize(ByteArrayDataInput in) throws IOException {
         int worldVersion = in.readInt();
 
-        Chunk[] chunks = deserializeCompressed(this::deserializeChunks, in);
-        CompoundBinaryTag extraData = deserializeCompressed((length, dataIn) -> this.deserializeCompound(length, dataIn), in);
+        Chunk[] chunks = readCompressed(this::deserializeChunks, in);
+        CompoundBinaryTag extraData = readCompressed(this::readRawCompound, in);
 
         return loader.deserializers().world().deserialize(worldVersion, chunks, extraData);
     }
 
     protected Chunk[] deserializeChunks(ByteArrayDataInput in) throws IOException {
-        int length = in.readInt();
-
-        Chunk[] chunks = new Chunk[length];
-        for (int i = 0; i < length; i++) {
-            chunks[i] = deserializeChunk(in);
-        }
-
-        return chunks;
+        return readArray(Chunk[]::new, in, this::deserializeChunk);
     }
 
     protected Chunk deserializeChunk(ByteArrayDataInput in) throws IOException {
@@ -133,20 +118,13 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
         Heightmaps heightmaps = deserializeHeightmaps(in);
         BlockEntity[] blockEntities = deserializeBlockEntities(in);
         Entity[] entities = deserializeEntities(in);
-        CompoundBinaryTag extraData = deserializeCompound(in);
+        CompoundBinaryTag extraData = readCompound(in);
 
         return loader.deserializers().chunk().deserialize(x, z, sections, heightmaps, blockEntities, entities, extraData);
     }
 
     protected Section[] deserializeSections(ByteArrayDataInput in) throws IOException {
-        int length = in.readInt();
-
-        Section[] sections = new Section[length];
-        for (int i = 0; i < length; i++) {
-            sections[i] = deserializeSection(in);
-        }
-
-        return sections;
+        return readArray(Section[]::new, in, this::deserializeSection);
     }
 
     protected Section deserializeSection(ByteArrayDataInput in) throws IOException {
@@ -171,23 +149,23 @@ public class SlimeSerializer_v12 extends SlimeSerializer {
     }
 
     protected BlockStates deserializeBlockStates(ByteArrayDataInput in) throws IOException {
-        return loader.deserializers().blockStates().deserialize(deserializeCompound(in));
+        return loader.deserializers().blockStates().deserialize(readCompound(in));
     }
 
     protected Biomes deserializeBiomes(ByteArrayDataInput in) throws IOException {
-        return loader.deserializers().biomes().deserialize(deserializeCompound(in));
+        return loader.deserializers().biomes().deserialize(readCompound(in));
     }
 
     protected Heightmaps deserializeHeightmaps(ByteArrayDataInput in) throws IOException {
-        return loader.deserializers().heightmaps().deserialize(deserializeCompound(in));
+        return loader.deserializers().heightmaps().deserialize(readCompound(in));
     }
 
     protected BlockEntity[] deserializeBlockEntities(ByteArrayDataInput in) throws IOException {
-        return deserializeCompoundList(BlockEntity[]::new, in, TILE_ENTITIES, loader.deserializers().blockEntity()::deserialize);
+        return readCompoundArray(BlockEntity[]::new, in, TILE_ENTITIES, loader.deserializers().blockEntity()::deserialize);
     }
 
     protected Entity[] deserializeEntities(ByteArrayDataInput in) throws IOException {
-        return deserializeCompoundList(Entity[]::new, in, ENTITIES, loader.deserializers().entity()::deserialize);
+        return readCompoundArray(Entity[]::new, in, ENTITIES, loader.deserializers().entity()::deserialize);
     }
     //</editor-fold>
 }

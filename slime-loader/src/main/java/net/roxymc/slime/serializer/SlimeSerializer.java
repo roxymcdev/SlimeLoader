@@ -11,6 +11,7 @@ import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.roxymc.slime.CompoundBinaryTagHolder;
 import net.roxymc.slime.loader.SlimeLoader;
+import net.roxymc.slime.util.function.IOBiConsumer;
 import net.roxymc.slime.util.function.IOBiFunction;
 import net.roxymc.slime.util.function.IOConsumer;
 import net.roxymc.slime.util.function.IOFunction;
@@ -32,10 +33,8 @@ public abstract class SlimeSerializer {
     public static SlimeSerializer forVersion(SlimeLoader loader, int version) {
         Preconditions.checkArgument(
                 version >= 12,
-                String.format(
-                        "Serializers below version 12 (%s) are not supported. See: https://github.com/roxymc-net/SlimeLoader#legacy-slime-versions",
-                        version
-                )
+                "Serializers below version 12 (%s) are not supported. See: https://github.com/roxymc-net/SlimeLoader#legacy-slime-versions",
+                version
         );
 
         return switch (version) {
@@ -51,7 +50,7 @@ public abstract class SlimeSerializer {
         out.writeInt(world.version());
     }
 
-    protected void serializeCompressed(byte[] bytes, ByteArrayDataOutput out) {
+    protected void writeCompressed(byte[] bytes, ByteArrayDataOutput out) {
         byte[] compressed = Zstd.compress(bytes);
 
         out.writeInt(compressed.length);
@@ -60,32 +59,44 @@ public abstract class SlimeSerializer {
         out.write(compressed);
     }
 
-    protected void serializeCompressed(IOConsumer<ByteArrayDataOutput> consumer, ByteArrayDataOutput out) throws IOException {
-        ByteArrayDataOutput tempOut = ByteStreams.newDataOutput();
-        consumer.accept(tempOut);
+    protected void writeCompressed(IOConsumer<ByteArrayDataOutput> consumer, ByteArrayDataOutput out) throws IOException {
+        ByteArrayDataOutput output = ByteStreams.newDataOutput();
+        consumer.accept(output);
 
-        serializeCompressed(tempOut.toByteArray(), out);
+        writeCompressed(output.toByteArray(), out);
     }
 
-    protected void serializeCompound(CompoundBinaryTag tag, ByteArrayDataOutput out) throws IOException {
-        serializeCompound(tag, out, true);
+    protected <T> void writeCompressed(T value, IOBiConsumer<T, ByteArrayDataOutput> consumer, ByteArrayDataOutput out) throws IOException {
+        writeCompressed(output -> consumer.accept(value, output), out);
     }
 
-    protected void serializeCompound(CompoundBinaryTag tag, ByteArrayDataOutput out, boolean writeLength) throws IOException {
-        ByteArrayDataOutput tagOut = ByteStreams.newDataOutput();
-        BinaryTagIO.writer().write(tag, tagOut);
+    protected <T> void writeArray(T[] array, ByteArrayDataOutput out, IOBiConsumer<T, ByteArrayDataOutput> serializer) throws IOException {
+        out.writeInt(array.length);
 
-        byte[] bytes = tagOut.toByteArray();
-
-        if (writeLength) {
-            out.writeInt(bytes.length);
+        for (T element : array) {
+            serializer.accept(element, out);
         }
+    }
 
+    protected void writeCompound(CompoundBinaryTag tag, ByteArrayDataOutput out) throws IOException {
+        ByteArrayDataOutput output = ByteStreams.newDataOutput();
+        writeRawCompound(tag, output);
+
+        byte[] bytes = output.toByteArray();
+
+        out.writeInt(bytes.length);
         out.write(bytes);
     }
 
-    protected <T extends CompoundBinaryTagHolder> void serializeCompoundList(T[] array, ByteArrayDataOutput out, String key) throws IOException {
+    protected void writeRawCompound(CompoundBinaryTag tag, ByteArrayDataOutput out) throws IOException {
+        if (!tag.isEmpty()) {
+            BinaryTagIO.writer().write(tag, out);
+        }
+    }
+
+    protected <T extends CompoundBinaryTagHolder> void writeCompoundArray(T[] array, ByteArrayDataOutput out, String key) throws IOException {
         ListBinaryTag.Builder<CompoundBinaryTag> builder = ListBinaryTag.builder(BinaryTagTypes.COMPOUND);
+
         for (T element : array) {
             builder.add(element.tag());
         }
@@ -94,12 +105,12 @@ public abstract class SlimeSerializer {
                 .put(key, builder.build())
                 .build();
 
-        serializeCompound(tag, out);
+        writeCompound(tag, out);
     }
 
     public abstract World deserialize(ByteArrayDataInput in) throws IOException;
 
-    protected byte[] deserializeCompressed(ByteArrayDataInput in) {
+    protected byte[] readCompressed(ByteArrayDataInput in) {
         int compressedLength = in.readInt();
         int length = in.readInt();
 
@@ -109,37 +120,43 @@ public abstract class SlimeSerializer {
         return Zstd.decompress(compressed, length);
     }
 
-    protected <T> T deserializeCompressed(IOFunction<ByteArrayDataInput, T> function, ByteArrayDataInput in) throws IOException {
-        return deserializeCompressed((length, dataIn) -> function.apply(dataIn), in);
+    protected <T> T readCompressed(IOFunction<ByteArrayDataInput, T> function, ByteArrayDataInput in) throws IOException {
+        return readCompressed((length, input) -> function.apply(input), in);
     }
 
-    protected <T> T deserializeCompressed(IOBiFunction<Integer, ByteArrayDataInput, T> function, ByteArrayDataInput in) throws IOException {
-        byte[] bytes = deserializeCompressed(in);
+    protected <T> T readCompressed(IOBiFunction<Integer, ByteArrayDataInput, T> function, ByteArrayDataInput in) throws IOException {
+        byte[] bytes = readCompressed(in);
 
         return function.apply(bytes.length, ByteStreams.newDataInput(bytes));
     }
 
-    protected CompoundBinaryTag deserializeCompound(ByteArrayDataInput in) throws IOException {
+    protected <T> T[] readArray(
+            IntFunction<T[]> arrayBuilder, ByteArrayDataInput in, IOFunction<ByteArrayDataInput, T> deserializer
+    ) throws IOException {
         int length = in.readInt();
 
-        return deserializeCompound(length, in);
-    }
-
-    protected CompoundBinaryTag deserializeCompound(int length, ByteArrayDataInput in) throws IOException {
-        if (length == 0) {
-            return CompoundBinaryTag.empty();
+        T[] array = arrayBuilder.apply(length);
+        for (int i = 0; i < length; i++) {
+            array[i] = deserializer.apply(in);
         }
 
-        byte[] bytes = new byte[length];
-        in.readFully(bytes);
-
-        return BinaryTagIO.reader().read(ByteStreams.newDataInput(bytes));
+        return array;
     }
 
-    protected <T extends CompoundBinaryTagHolder> T[] deserializeCompoundList(
+    protected CompoundBinaryTag readCompound(ByteArrayDataInput in) throws IOException {
+        int length = in.readInt();
+
+        return readRawCompound(length, in);
+    }
+
+    protected CompoundBinaryTag readRawCompound(int length, ByteArrayDataInput in) throws IOException {
+        return length == 0 ? CompoundBinaryTag.empty() : BinaryTagIO.reader().read(in);
+    }
+
+    protected <T extends CompoundBinaryTagHolder> T[] readCompoundArray(
             IntFunction<T[]> arrayBuilder, ByteArrayDataInput in, String key, Function<CompoundBinaryTag, T> deserializer
     ) throws IOException {
-        CompoundBinaryTag tag = deserializeCompound(in);
+        CompoundBinaryTag tag = readCompound(in);
         ListBinaryTag list = tag.getList(key, BinaryTagTypes.COMPOUND);
 
         T[] array = arrayBuilder.apply(list.size());
